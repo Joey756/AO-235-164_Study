@@ -1,6 +1,6 @@
 # Multiwavelength Temporal Variability & Bayesian Broadband SED Modeling Pipeline
 **Candidate:** Joel Owusu Boateng Kwakye  
-**Target:** Astrophysics MSc Program, Stellenbosch University  
+ 
 
 This notebook contains a unified computational pipeline developed for the multiwavelength temporal and spectral analysis of the intermediate synchrotron-peaked (ISP) blazar **AO 0235+164**. The codebase processes and models quasi-simultaneous data captured over an 8.5-year baseline (2008 to mid-2016) by the *Neil Gehrels Swift Observatory* (XRT/UVOT) and the *Fermi Gamma-ray Space Telescope* (LAT).
 
