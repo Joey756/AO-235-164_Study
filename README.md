@@ -1,4 +1,4 @@
-# Multiwavelength Temporal Variability & Bayesian Broadband SED Modeling Pipeline
+# Multiwavelength Temporal Variability &  Broadband SED Modeling Pipeline
 **Candidate:** Joel Owusu Boateng Kwakye  
  
 
