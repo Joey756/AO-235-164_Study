@@ -56,20 +56,6 @@ light-curve / SED analysis in the
 
 ---
 
-## Known issues (as of last run)
-
-- **Silent failures**: the `uvotimsum`/`uvotsource` success checks have no
-  `else` branch, so a failed extraction prints nothing. The last captured run
-  found 89 candidate observations but only produced 3 output files, with no way
-  to tell why the other ~86 didn't produce a result. Add
-  `else: print(res.stderr)` after each `subprocess.run` call before trusting a
-  full run.
-- **MJD window**: confirm the `start_time` range in the TAP query matches the
-  epoch range intended for the study — an earlier version of this pipeline used
-  a different window and returned a different (larger) observation count.
-- `filter_id` is parsed as the full filename prefix (e.g. `sw00030880103uvv`),
-  not just the 3-letter filter code — harmless for output-file uniqueness, but
-  don't reuse it expecting a clean filter label.
 
 ---
 
