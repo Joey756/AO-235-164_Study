@@ -11,7 +11,8 @@ Analysis of the intermediate synchrotron-peaked (ISP) BL Lac object **AO 0235+16
 | File | Description |
 |------|-------------|
 | `AO235+14_study.ipynb` | Full multiwavelength study: UVOT + XRT + Fermi-LAT light curves, DCF cross-correlation, period analysis, broadband SED modelling with MCMC |
-| `Correction&LC.ipynb` | Swift UVOT extraction pipeline: reads raw FITS files, applies galactic extinction corrections, excludes non-detections, and plots corrected six-band light curves |
+| `Correction&LC.ipynb` | Swift UVOT extraction pipeline for AO 0235+164: reads raw FITS files, applies galactic extinction corrections, excludes non-detections, and plots corrected six-band light curves |
+| `UVOT_Pipeline.ipynb` | Universal Swift UVOT pipeline: handles any blazar/AGN source by editing a single config cell — extinction, extraction, and light curve plotting all automated |
 
 ---
 
@@ -89,6 +90,91 @@ E(B-V) = A_B − A_V = 0.0705 mag. UV R_λ coefficients follow the Cardelli et a
 2. Ensure `AO_0235+164.csv` (NED extinction table) is present
 3. Run Cell 1 → generates `AO_0235+164_UVOT_Corrected.csv`
 4. Run Cell 2 → plots and saves `AO_0235+164_Multiband.jpg`
+
+---
+
+## UVOT_Pipeline.ipynb
+
+Universal Swift UVOT extraction and light curve pipeline. Supports any number of sources — only the config cell needs editing.
+
+### What it does
+
+**Cell 1 — Configuration (edit here only)**
+
+Define all sources in the `SOURCES` list. Each entry takes:
+
+| Key | Description |
+|-----|-------------|
+| `name` | Source name — used for output filenames |
+| `data_dir` | Folder containing raw `_mag.fits` files |
+| `ext_csv` | NED galactic extinction table (must have `Bandpass` and `Galactic Extinction` columns) |
+| `out_dir` | Where to save the corrected CSV and multiband plot |
+| `mjd_min` | Start of MJD window for the plot (`None` = no limit) |
+| `mjd_max` | End of MJD window for the plot (`None` = no limit) |
+
+Example entry:
+```python
+{
+    'name':     'AO_0235+164',
+    'data_dir': '/path/to/AO_0235+164_data/',
+    'ext_csv':  '/path/to/AO_0235+164.csv',
+    'out_dir':  '/path/to/AO_0235+164_data/',
+    'mjd_min':  54400,   # zoom into a flare window
+    'mjd_max':  54800,
+}
+```
+
+**Cell 2 — Pipeline (do not edit)**
+
+Runs automatically for every source in `SOURCES`. For each source it:
+
+1. Reads Landolt V/B/U extinctions from the NED CSV
+2. Derives UV extinctions (W1, M2, W2) automatically via E(B-V) = A_B − A_V and the Cardelli et al. (1989) law
+3. Scans all `_mag.fits` files, identifies the UVOT filter from the filename
+4. Extracts MJD from the FITS header (`MJD-OBS`, `DATE-OBS`) or falls back to the table `TSTART` column (Swift MET → MJD conversion)
+5. Excludes non-detections (`MAG = 99` sentinel) and skipped files
+6. Applies extinction correction: `F_intrinsic = F_raw × 10^(A_λ / 2.5)`
+7. Saves `{name}_UVOT_Corrected.csv` to `out_dir`
+8. Plots six stacked filter panels (V, B, U, W1, M2, W2) with shared MJD axis, restricted to `mjd_min`–`mjd_max` if set
+9. Saves `{name}_Multiband.jpg` to `out_dir`
+
+### Extinction derivation
+
+UV extinctions (W1/M2/W2) are not in the Schlafly & Finkbeiner (2011) NED tables. The pipeline derives them from the optical values:
+
+```
+E(B-V) = A_B − A_V
+A_W1   = E(B-V) × 6.40
+A_M2   = E(B-V) × 8.70
+A_W2   = E(B-V) × 8.10
+```
+
+R_λ coefficients follow Cardelli, Clayton & Mathis (1989), R_V = 3.1.
+
+Example derived values for the four pre-configured sources:
+
+| Source | E(B-V) | A_W1 | A_M2 | A_W2 |
+|--------|--------|------|------|------|
+| AO 0235+164 | 0.0705 | 0.451 | 0.613 | 0.572 |
+| 3C 66A | 0.0745 | 0.477 | 0.648 | 0.604 |
+| PKS 1749+096 | 0.1570 | 1.005 | 1.366 | 1.272 |
+| PKS 1730−130 | 0.4593 | 2.939 | 3.996 | 3.720 |
+
+### Output files
+
+For each source the pipeline writes two files to `out_dir`:
+
+| File | Description |
+|------|-------------|
+| `{name}_UVOT_Corrected.csv` | Extinction-corrected detections (columns: MJD, Filter, Intrinsic_Flux, Flux_Error) |
+| `{name}_Multiband.jpg` | Six-panel stacked light curve plot |
+
+### Adding a new source
+
+1. Download Swift UVOT `_mag.fits` files into a folder
+2. Export the NED extinction table for the source as a CSV
+3. Add a new dict to `SOURCES` in Cell 1 with the paths and optional MJD limits
+4. Run Cell 2 — no other changes needed
 
 ---
 
