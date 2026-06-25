@@ -10,9 +10,57 @@ Analysis of the intermediate synchrotron-peaked (ISP) BL Lac object **AO 0235+16
 
 | File | Description |
 |------|-------------|
-| `AO235+14_study.ipynb` | Full multiwavelength study: UVOT + XRT + Fermi-LAT light curves, DCF cross-correlation, period analysis, broadband SED modelling with MCMC |
-| `Correction&LC.ipynb` | Swift UVOT extraction pipeline for AO 0235+164: reads raw FITS files, applies galactic extinction corrections, excludes non-detections, and plots corrected six-band light curves |
-| `UVOT_Pipeline.ipynb` | Universal Swift UVOT pipeline: handles any blazar/AGN source by editing a single config cell — extinction, extraction, and light curve plotting all automated |
+| `Obs_extractor.ipynb` | **Step 1 — SciServer** Query HEASARC and run HEASoft (`uvotimsum` + `uvotsource`) to produce raw `_mag.fits` files from archival Swift UVOT imaging |
+| `Correction&LC.ipynb` | **Step 2 — local** Read the raw `_mag.fits` files, apply galactic extinction corrections, exclude non-detections, and plot corrected six-band light curves for AO 0235+164 |
+| `UVOT_Pipeline.ipynb` | **Step 2 — universal** Same as above but handles any blazar/AGN source by editing a single config cell |
+| `AO235+14_study.ipynb` | **Step 3** Full multiwavelength study: UVOT + XRT + Fermi-LAT light curves, DCF cross-correlation, period analysis, broadband SED modelling with MCMC |
+
+---
+
+## Obs_extractor.ipynb
+
+SciServer notebook that queries HEASARC and uses HEASoft to photometrically reduce archival Swift UVOT imaging of any target blazar, producing per-epoch, per-filter `_mag.fits` files. This is **Step 1** — its output feeds directly into `Correction&LC.ipynb` and `UVOT_Pipeline.ipynb`.
+
+> **Environment:** Must run inside a SciServer compute container with HEASoft installed and the `headata` FTP mirror mounted. Not intended for local execution.
+
+### What it does
+
+1. **Query** — uses `pyvo` to TAP-query HEASARC's `swiftmastr` catalog for all Swift observations pointed within 0.05° of the target (currently AO 0235+164: RA 39.66208°, Dec 16.61639°) within a chosen MJD window.
+2. **Locate** — for each returned `obsid`, finds the UVOT sky image directory on the SciServer `headata` FTP mirror (`/home/idies/workspace/headata/FTP/swift/data/obs/`).
+3. **Extract** — for each filter image (`*_sk.img.gz`):
+   - decompresses the gzipped image,
+   - runs `uvotimsum` to co-add snapshots into a single summed exposure,
+   - runs `uvotsource` with a 5″ source aperture, 7″–40″ background annulus, and 5σ detection threshold.
+4. **Save** — writes one `{target}_{obsid}_{filter}_mag.fits` file per observation per filter to persistent SciServer storage. Already-processed files are detected and skipped, so the cell is safe to re-run after an interruption.
+5. **Package** (second cell) — zips the results folder into `UVOT_data.zip` for download off SciServer.
+
+### Inputs
+
+| Variable | Description |
+|----------|-------------|
+| `targets` | List of `{name, ra, dec}` dicts — add more blazars here to run the loop on multiple sources |
+| `username` | Your SciServer username (used to locate persistent storage paths) |
+| `output_dir` | Destination for extracted `_mag.fits` files |
+
+Source and background region files (`source.reg`, `bkg.reg`) are generated automatically from each target's coordinates — no manual region-drawing needed.
+
+### Outputs
+
+| File | Description |
+|------|-------------|
+| `{target}_{obsid}_{filter}_mag.fits` | Per-epoch, per-filter photometry table (input to downstream notebooks) |
+| `UVOT_data.zip` | Packaged results archive for download (created by Cell 2) |
+
+### How to run
+
+On SciServer, in a Jupyter session with HEASoft loaded:
+
+1. Set `username` to your SciServer username in Cell 1.
+2. Edit the `targets` list if processing additional sources.
+3. Run Cell 1 — extracts all UVOT imaging and saves `_mag.fits` files.
+4. Run Cell 2 — packages results into `UVOT_data.zip` for download.
+
+Re-running after a partial or interrupted run is safe — existing output files are skipped automatically.
 
 ---
 
